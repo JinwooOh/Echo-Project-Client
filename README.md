@@ -72,8 +72,11 @@ Set:
 npm install
 npm run build
 
-# Python deps for display
-cd python && pip install -r requirements.txt && cd ..
+# Python deps for display (uses venv to avoid externally-managed-environment)
+cd python
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cd ..
 ```
 
 ### 7. Run

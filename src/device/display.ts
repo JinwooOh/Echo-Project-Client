@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { resolve } from "path";
+import { existsSync } from "fs";
 import { Socket } from "net";
 import dotenv from "dotenv";
 import { WebDisplayServer } from "./web-display";
@@ -78,7 +79,9 @@ export class EchoDisplay {
   startPythonProcess(): void {
     if (!this.deviceEnabled) return;
     const pythonDir = resolve(__dirname, "../../python");
-    const command = `cd ${pythonDir} && python3 echo-ui.py`;
+    const venvPython = resolve(pythonDir, ".venv/bin/python");
+    const pythonCmd = existsSync(venvPython) ? venvPython : "python3";
+    const command = `cd ${pythonDir} && ${pythonCmd} echo-ui.py`;
     console.log("Starting Python display process...");
     this.pythonProcess = exec(command, (error, stdout, stderr) => {
       if (error) {

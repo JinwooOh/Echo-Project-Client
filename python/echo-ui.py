@@ -117,7 +117,6 @@ class RenderThread(threading.Thread):
                 except Exception as e:
                     print(f"[Render] Failed to load image: {e}")
         else:
-            global current_image
             current_image = None
             header_height = 98
             image = Image.new("RGBA", (self.whisplay.LCD_WIDTH, header_height), (0, 0, 0, 255))

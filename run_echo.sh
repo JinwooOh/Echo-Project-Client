@@ -34,6 +34,15 @@ if [ ! -d "dist" ] || [ ! -f "dist/index.js" ]; then
   npm run build
 fi
 
+# Ensure Python venv exists for display
+if [ -d "python" ] && [ ! -d "python/.venv" ]; then
+  echo "Creating Python venv..."
+  cd python
+  python3 -m venv .venv
+  .venv/bin/pip install -r requirements.txt
+  cd ..
+fi
+
 # Run with hardware display enabled
 export WHISPLAY_DEVICE_ENABLED=${WHISPLAY_DEVICE_ENABLED:-true}
 export WHISPLAY_WEB_ENABLED=${WHISPLAY_WEB_ENABLED:-false}
