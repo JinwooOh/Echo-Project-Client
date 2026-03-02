@@ -81,14 +81,22 @@ cd ..
 
 ### 7. Run
 
+**With Whisplay hardware:**
 ```bash
 ./run_echo.sh
 ```
 
-Or directly:
-
+If you get `RuntimeError: Failed to add edge detection`, fix GPIO permissions:
 ```bash
-WHISPLAY_DEVICE_ENABLED=true npm start
+sudo usermod -aG gpio $USER
+# Log out and back in, or reboot
+```
+
+**Without Whisplay hardware (web simulator only):**
+```bash
+./run_echo.sh --no-display
+# Or: WHISPLAY_DEVICE_ENABLED=false WHISPLAY_WEB_ENABLED=true ./run_echo.sh
+# Open http://<pi-ip>:17880 from another device for the button UI
 ```
 
 ### 8. Run on boot (systemd)

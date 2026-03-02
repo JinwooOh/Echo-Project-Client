@@ -1,6 +1,8 @@
 #!/bin/bash
 # Run Echo Pi Client on Raspberry Pi
-# Usage: ./run_echo.sh  or  SOUND_CARD_INDEX=1 ./run_echo.sh
+# Usage: ./run_echo.sh
+#        ./run_echo.sh --no-display   # Use web simulator only (no Whisplay hardware)
+#        SOUND_CARD_INDEX=1 ./run_echo.sh
 
 set -e
 
@@ -29,6 +31,24 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
+# Load .env for display settings (WHISPLAY_DEVICE_ENABLED, etc.)
+if [ -f .env ]; then
+  set -a
+  # shellcheck source=/dev/null
+  . ./.env
+  set +a
+fi
+
+# Override: --no-display uses web simulator only (no Whisplay hardware / no GPIO)
+for arg in "$@"; do
+  if [ "$arg" = "--no-display" ]; then
+    export WHISPLAY_DEVICE_ENABLED=false
+    export WHISPLAY_WEB_ENABLED=true
+    echo "Using web simulator only (--no-display)"
+    break
+  fi
+done
+
 if [ ! -d "dist" ] || [ ! -f "dist/index.js" ]; then
   echo "Building..."
   npm run build
@@ -43,7 +63,7 @@ if [ -d "python" ] && [ ! -d "python/.venv" ]; then
   cd ..
 fi
 
-# Run with hardware display enabled
+# Run with hardware display (set WHISPLAY_DEVICE_ENABLED=false in .env if no Whisplay or GPIO errors)
 export WHISPLAY_DEVICE_ENABLED=${WHISPLAY_DEVICE_ENABLED:-true}
 export WHISPLAY_WEB_ENABLED=${WHISPLAY_WEB_ENABLED:-false}
 
