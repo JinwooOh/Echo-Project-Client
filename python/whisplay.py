@@ -33,6 +33,7 @@ def _detect_platform():
 PLATFORM, PLATFORM_MODEL = _detect_platform()
 
 # Import GPIO library based on platform
+# Pi 5 / Bookworm: use rpi-lgpio (provides RPi.GPIO API via lgpio). Do NOT install RPi.GPIO.
 if PLATFORM == "rpi":
     import RPi.GPIO as GPIO
 elif PLATFORM == "radxa":
@@ -69,6 +70,21 @@ RADXA_ZERO3_PIN_MAP = {
     31: (3, 12),  32: (3, 18),  33: (3, 19),  35: (3, 4),
     36: (3, 7),   37: (1, 4),   38: (3, 6),   40: (3, 5),
 }
+
+def _is_pi5():
+    """Detect Pi 5 (uses RP1, needs gpiochip4)."""
+    try:
+        with open("/proc/device-tree/model", "r") as f:
+            model = f.read().strip("\0").lower()
+            return "pi 5" in model or "5 " in model
+    except Exception:
+        return False
+
+
+# Raspberry Pi: gpiochip for 40-pin header. Pi 5 = gpiochip4, Pi 4 = gpiochip0
+RPI_GPIOCHIP = 4 if _is_pi5() else 0
+# Physical pin 11 = BCM 17 (button)
+RPI_BUTTON_BCM = 17
 
 # Based on Allwinner A733 Radxa Cubie A7Z
 # gpiochip0 (2000000.pinctrl, 352 lines): PA=0-31, PB=32-63, ..., PJ=288-319, PK=320-351
@@ -176,6 +192,7 @@ class WhisplayBoard:
         self._current_b = 0
         self.button_press_callback = None
         self.button_release_callback = None
+        self._rpi_use_gpiod_button = False
 
         if self.platform == "rpi":
             self._init_rpi()
@@ -213,15 +230,67 @@ class WhisplayBoard:
 
         # Initialize button
         GPIO.setup(self.BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(
-            self.BUTTON_PIN, GPIO.BOTH, callback=self._button_event_rpi, bouncetime=50
-        )
+        try:
+            GPIO.add_event_detect(
+                self.BUTTON_PIN, GPIO.BOTH, callback=self._button_event_rpi, bouncetime=50
+            )
+            self._rpi_use_gpiod_button = False
+        except RuntimeError as e:
+            if "edge detection" in str(e).lower() or "add edge" in str(e).lower():
+                # Pi 5 / Bookworm: RPi.GPIO edge detection fails; use gpiod polling fallback
+                print(f"[Whisplay] RPi.GPIO edge detection failed ({e}), using gpiod fallback for button")
+                try:
+                    GPIO.cleanup(self.BUTTON_PIN)
+                except Exception:
+                    pass
+                self._init_rpi_button_gpiod()
+            else:
+                raise
 
         # Initialize SPI
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
         self.spi.max_speed_hz = 100_000_000
         self.spi.mode = 0b00
+
+    def _init_rpi_button_gpiod(self):
+        """Fallback: use gpiod for button when RPi.GPIO edge detection fails (Pi 5 / Bookworm)."""
+        import gpiod
+        self._rpi_use_gpiod_button = True
+        chip = gpiod.Chip(f"gpiochip{RPI_GPIOCHIP}")
+        btn_line = chip.get_line(RPI_BUTTON_BCM)
+        try:
+            btn_line.request(
+                consumer="whisplay-btn",
+                type=gpiod.LINE_REQ_DIR_IN,
+                flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP,
+            )
+        except Exception:
+            btn_line.request(consumer="whisplay-btn", type=gpiod.LINE_REQ_DIR_IN)
+        self._rpi_btn_line = btn_line
+        self._rpi_btn_chip = chip
+        self._btn_thread_running = True
+        self._btn_thread = threading.Thread(target=self._button_monitor_rpi_gpiod, daemon=True)
+        self._btn_thread.start()
+
+    def _button_monitor_rpi_gpiod(self):
+        """Poll button via gpiod (fallback when RPi.GPIO edge detection fails)."""
+        btn_line = self._rpi_btn_line
+        last_state = btn_line.get_value()
+        while self._btn_thread_running:
+            try:
+                state = btn_line.get_value()
+                if state != last_state:
+                    last_state = state
+                    if state == 1:
+                        if self.button_press_callback:
+                            self.button_press_callback()
+                    else:
+                        if self.button_release_callback:
+                            self.button_release_callback()
+            except Exception:
+                pass
+            time.sleep(0.01)
 
     # ==================== Radxa Initialization ====================
     def _init_radxa(self):
@@ -625,6 +694,18 @@ class WhisplayBoard:
         self.blue_pwm.stop()
 
         if self.platform == "rpi":
+            if self._rpi_use_gpiod_button:
+                self._btn_thread_running = False
+                if hasattr(self, "_btn_thread") and self._btn_thread:
+                    self._btn_thread.join(timeout=2)
+                try:
+                    self._rpi_btn_line.release()
+                except Exception:
+                    pass
+                try:
+                    self._rpi_btn_chip.close()
+                except Exception:
+                    pass
             GPIO.cleanup()
         elif self.platform == "radxa":
             # Stop button listener thread

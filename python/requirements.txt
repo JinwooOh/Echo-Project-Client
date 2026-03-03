@@ -1,3 +1,7 @@
 Pillow
 numpy
 spidev
+# Pi 5 / Bookworm: use rpi-lgpio (RPi.GPIO fails on Pi 5). Do NOT install RPi.GPIO.
+rpi-lgpio
+# For gpiod button fallback when edge detection fails (Pi 5 / Bookworm)
+gpiod

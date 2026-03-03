@@ -19,7 +19,8 @@ Raspberry Pi Zero 2 frontend for the Echo Music Agent. Records voice, transcribe
 sudo apt update
 sudo apt install -y sox mpg123 python3-pip python3-venv
 # For Whisplay display (Raspberry Pi):
-sudo apt install -y python3-rpi.gpio python3-spidev
+sudo apt install -y python3-spidev python3-rpi-lgpio
+# Pi 5 / Bookworm: use rpi-lgpio (RPi.GPIO fails). Do NOT install python3-rpi.gpio.
 # Or for Radxa: sudo apt install python3-libgpiod
 ```
 
@@ -86,11 +87,10 @@ cd ..
 ./run_echo.sh
 ```
 
-If you get `RuntimeError: Failed to add edge detection`, fix GPIO permissions:
-```bash
-sudo usermod -aG gpio $USER
-# Log out and back in, or reboot
-```
+If you get `RuntimeError: Failed to add edge detection`:
+- **Pi 5 / Bookworm**: Use `rpi-lgpio` instead of RPi.GPIO. The venv includes it; if using system Python: `sudo apt install python3-rpi-lgpio`
+- **GPIO permissions**: `sudo usermod -aG gpio $USER` then log out and back in
+- **Code fallback**: If edge detection still fails, the code uses gpiod polling automatically
 
 **Without Whisplay hardware (web simulator only):**
 ```bash
