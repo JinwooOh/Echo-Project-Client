@@ -1,7 +1,8 @@
 Pillow
 numpy
 spidev
-# Pi 5 / Bookworm: use rpi-lgpio (RPi.GPIO fails on Pi 5). Do NOT install RPi.GPIO.
-rpi-lgpio
-# For gpiod button fallback when edge detection fails (Pi 5 / Bookworm)
+# GPIO: use system packages (avoids lgpio build). Run before venv:
+#   sudo apt install python3-rpi-lgpio python3-libgpiod
+# Then: python3 -m venv --system-site-packages .venv
+# For gpiod button fallback when edge detection fails
 gpiod

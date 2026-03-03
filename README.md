@@ -19,8 +19,8 @@ Raspberry Pi Zero 2 frontend for the Echo Music Agent. Records voice, transcribe
 sudo apt update
 sudo apt install -y sox mpg123 python3-pip python3-venv
 # For Whisplay display (Raspberry Pi):
-sudo apt install -y python3-spidev python3-rpi-lgpio
-# Pi 5 / Bookworm: use rpi-lgpio (RPi.GPIO fails). Do NOT install python3-rpi.gpio.
+sudo apt install -y python3-spidev python3-rpi-lgpio python3-libgpiod
+# rpi-lgpio: Pi 5 / Bookworm compatibility. libgpiod: button fallback.
 # Or for Radxa: sudo apt install python3-libgpiod
 ```
 
@@ -73,9 +73,9 @@ Set:
 npm install
 npm run build
 
-# Python deps for display (uses venv to avoid externally-managed-environment)
+# Python deps for display (venv uses --system-site-packages for apt rpi-lgpio)
 cd python
-python3 -m venv .venv
+python3 -m venv --system-site-packages .venv
 .venv/bin/pip install -r requirements.txt
 cd ..
 ```

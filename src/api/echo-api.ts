@@ -80,9 +80,16 @@ export async function fetchAudio(audioUrl: string): Promise<Buffer> {
     const u = new URL(fullUrl);
     if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
       const base = new URL(baseURL);
+      if (base.hostname === "localhost" || base.hostname === "127.0.0.1") {
+        throw new Error(
+          "Backend returned localhost audio URL but ECHO_BASE_URL is not set to your backend IP. " +
+            "Add ECHO_BASE_URL=http://<backend-ip>:8000 to .env on the Pi."
+        );
+      }
       fullUrl = `${base.origin}${u.pathname}${u.search}`;
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("ECHO_BASE_URL")) throw err;
     // keep fullUrl as-is if URL parse fails
   }
   const { data } = await axios.get(fullUrl, {

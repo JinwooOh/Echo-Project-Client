@@ -49,16 +49,25 @@ for arg in "$@"; do
   fi
 done
 
-if [ ! -d "dist" ] || [ ! -f "dist/index.js" ]; then
+# Install deps if needed; build when dist missing or source changed
+if [ ! -d "node_modules" ]; then
+  echo "Installing npm dependencies..."
+  npm install
+fi
+if [ ! -f "dist/index.js" ]; then
   echo "Building..."
+  npm run build
+elif [ -n "$(find src -newer dist/index.js 2>/dev/null)" ]; then
+  echo "Source changed, rebuilding..."
   npm run build
 fi
 
 # Ensure Python venv exists for display
+# Use --system-site-packages so apt-installed rpi-lgpio/gpiod are available (avoids lgpio build)
 if [ -d "python" ] && [ ! -d "python/.venv" ]; then
   echo "Creating Python venv..."
   cd python
-  python3 -m venv .venv
+  python3 -m venv --system-site-packages .venv
   .venv/bin/pip install -r requirements.txt
   cd ..
 fi
