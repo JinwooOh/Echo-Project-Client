@@ -72,9 +72,19 @@ export async function waitForJobComplete(
 }
 
 export async function fetchAudio(audioUrl: string): Promise<Buffer> {
-  const fullUrl = audioUrl.startsWith("http")
+  let fullUrl = audioUrl.startsWith("http")
     ? audioUrl
     : `${baseURL.replace(/\/$/, "")}${audioUrl}`;
+  // Backend may return localhost URLs; replace with ECHO_BASE_URL so remote clients reach the backend
+  try {
+    const u = new URL(fullUrl);
+    if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+      const base = new URL(baseURL);
+      fullUrl = `${base.origin}${u.pathname}${u.search}`;
+    }
+  } catch {
+    // keep fullUrl as-is if URL parse fails
+  }
   const { data } = await axios.get(fullUrl, {
     responseType: "arraybuffer",
     headers: bearerToken
