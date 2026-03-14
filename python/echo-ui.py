@@ -33,6 +33,24 @@ status_font_size = 20
 emoji_font_size = 40
 battery_font_size = 13
 
+# Map emojis to Unicode symbols that render in standard fonts (DejaVu, Noto, FreeSans)
+# Emojis show as squares on Whisplay; these symbols display correctly
+EMOJI_TO_SYMBOL = {
+    "🎵": "♪",
+    "🎶": "♫",
+    "🔊": "▶",
+    "😐": "●",
+    "📝": "✎",
+    "📤": "→",
+    "❌": "×",
+    "😕": "?",
+}
+
+
+def _display_emoji(emoji: str) -> str:
+    """Convert emoji to font-renderable symbol for Whisplay display."""
+    return EMOJI_TO_SYMBOL.get(emoji, emoji)
+
 current_status = "Echo"
 current_emoji = "🎵"
 current_text = "Hold to sing"
@@ -205,9 +223,10 @@ class RenderThread(threading.Thread):
         image_width = self.whisplay.LCD_WIDTH
         corner = getattr(self.whisplay, "CornerHeight", 0)
         TextUtils.draw_mixed_text(draw, image, current_status, status_font, (corner, 0))
-        emoji_bbox = emoji_font.getbbox(current_emoji)
+        display_emoji = _display_emoji(current_emoji)
+        emoji_bbox = emoji_font.getbbox(display_emoji)
         emoji_w = emoji_bbox[2] - emoji_bbox[0]
-        TextUtils.draw_mixed_text(draw, image, current_emoji, emoji_font, ((image_width - emoji_w) // 2, status_font_size + 8))
+        TextUtils.draw_mixed_text(draw, image, display_emoji, emoji_font, ((image_width - emoji_w) // 2, status_font_size + 8))
         status_icon_context = {
             "battery_level": battery_level,
             "battery_color": battery_color,
