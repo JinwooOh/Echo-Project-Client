@@ -36,9 +36,44 @@ const recordingsDir = path.join(
   "recordings"
 );
 
+const MAX_RECORDING_MS = 60_000; // Auto-stop after 60s if button stuck
+const MAX_RECORDINGS_KEEP = Math.max(
+  1,
+  parseInt(process.env.MAX_RECORDINGS_KEEP || "10", 10) || 10
+);
+
 function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function deleteRecordingFile(filePath: string): void {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    console.warn("Failed to delete recording:", filePath, err);
+  }
+}
+
+function cleanupOldRecordings(): void {
+  try {
+    if (!fs.existsSync(recordingsDir)) return;
+    const files = fs.readdirSync(recordingsDir)
+      .filter((f) => f.endsWith(".mp3"))
+      .map((f) => ({
+        name: f,
+        path: path.join(recordingsDir, f),
+        mtime: fs.statSync(path.join(recordingsDir, f)).mtime.getTime(),
+      }))
+      .sort((a, b) => b.mtime - a.mtime);
+    for (let i = MAX_RECORDINGS_KEEP; i < files.length; i++) {
+      deleteRecordingFile(files[i].path);
+    }
+  } catch (err) {
+    console.warn("Recordings cleanup failed:", err);
   }
 }
 
@@ -50,6 +85,7 @@ export class EchoFlow {
 
   constructor() {
     ensureDir(recordingsDir);
+    cleanupOldRecordings();
     this.setupButtonHandlers();
     this.enterIdle();
   }
@@ -115,12 +151,20 @@ export class EchoFlow {
     });
     const { result, stop } = recordAudioManually(this.currentRecordFilePath);
     this.stopRecording = stop;
+    const maxDurationTimer = setTimeout(() => {
+      if (this.state === "recording" && this.stopRecording) {
+        console.log("[Flow] Max recording duration reached, auto-stopping");
+        this.stopRecording();
+      }
+    }, MAX_RECORDING_MS);
     result
       .then(() => {
+        clearTimeout(maxDurationTimer);
         this.stopRecording = null;
         this.enterTranscribing();
       })
       .catch((err) => {
+        clearTimeout(maxDurationTimer);
         console.error("Recording error:", err);
         this.stopRecording = null;
         this.enterIdle();
@@ -136,6 +180,7 @@ export class EchoFlow {
       RGB: "#ffaa00",
     });
     const transcript = await recognizeAudio(this.currentRecordFilePath);
+    deleteRecordingFile(this.currentRecordFilePath);
     if (!transcript || transcript.trim().length === 0) {
       console.log("Empty transcript, returning to idle");
       display({

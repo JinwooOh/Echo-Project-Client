@@ -165,20 +165,22 @@ class TextUtils:
 
     @staticmethod
     def wrap_text(draw, text, font, max_width):
+        """Wrap text, splitting on newlines first so each line is preserved."""
         lines = []
-        current_line = ""
-        current_width = 0
-        for char in text:
-            char_width = TextUtils.get_char_size(font, char)[0]
-            test_width = current_width + char_width
-            if test_width <= max_width:
-                current_line += char
-                current_width = test_width
-            else:
-                if current_line:
-                    lines.append(current_line)
-                current_line = char
-                current_width = char_width
-        if current_line:
-            lines.append(current_line)
+        for paragraph in text.split("\n"):
+            current_line = ""
+            current_width = 0
+            for char in paragraph:
+                char_width = TextUtils.get_char_size(font, char)[0]
+                test_width = current_width + char_width
+                if test_width <= max_width:
+                    current_line += char
+                    current_width = test_width
+                else:
+                    if current_line:
+                        lines.append(current_line)
+                    current_line = char
+                    current_width = char_width
+            if current_line:
+                lines.append(current_line)
         return lines

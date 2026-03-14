@@ -1,4 +1,4 @@
-const LONG_PRESS_MS = 400;
+const LONG_PRESS_MS = 500;
 
 export interface ButtonHandlers {
   onShortPress: () => void;

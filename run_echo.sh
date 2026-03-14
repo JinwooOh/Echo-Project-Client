@@ -50,11 +50,14 @@ for arg in "$@"; do
 done
 
 # Install deps if needed; build when dist missing or source changed
+# Set SKIP_BUILD=1 when deploying pre-built (avoids OOM on Pi Zero 2)
 if [ ! -d "node_modules" ]; then
   echo "Installing npm dependencies..."
   npm install
 fi
-if [ ! -f "dist/index.js" ]; then
+if [ "${SKIP_BUILD}" = "1" ]; then
+  echo "Skipping build (SKIP_BUILD=1)"
+elif [ ! -f "dist/index.js" ]; then
   echo "Building..."
   npm run build
 elif [ -n "$(find src -newer dist/index.js 2>/dev/null)" ]; then

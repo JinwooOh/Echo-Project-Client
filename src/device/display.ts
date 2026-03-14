@@ -111,15 +111,18 @@ export class EchoDisplay {
       outerResolve();
       return;
     }
+    // Give Python time to init GPIO, SPI, LCD before socket is ready
+    const initialDelayMs = 4000;
+    await new Promise((r) => setTimeout(r, initialDelayMs));
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         await this.connect();
         outerResolve();
         return;
       } catch (err) {
-        console.log(`Connection attempt ${attempt} failed, retrying in 5s...`);
+        console.log(`Connection attempt ${attempt} failed, retrying in 3s...`);
         if (attempt < retries) {
-          await new Promise((r) => setTimeout(r, 5000));
+          await new Promise((r) => setTimeout(r, 3000));
         } else {
           console.error("Failed to connect after retries:", err);
           outerResolve();
