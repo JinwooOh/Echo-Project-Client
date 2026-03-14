@@ -16,6 +16,7 @@ dotenv.config();
 
 export const GENRE_PRESETS = [
   { label: "K-indie", style: "K-indie, hopeful, spring, gentle guitar" },
+  { label: "K-pop", style: "K-pop, catchy, energetic, synth, dance" },
   { label: "Pop", style: "Pop, upbeat, summer, synth" },
   { label: "Acoustic", style: "Acoustic, calm, coffee shop" },
   { label: "Electronic", style: "Electronic, ambient, dreamy" },
@@ -89,10 +90,13 @@ export class EchoFlow {
   }
 
   private updateIdleDisplay(): void {
+    const genreList = GENRE_PRESETS.map(
+      (g, i) => (i === this.genreIndex ? "▶ " : "  ") + g.label
+    ).join("\n");
     display({
       status: "idle",
       emoji: "🎵",
-      text: `${this.currentGenre.label}\n\nHold to sing`,
+      text: `${genreList}\n\nHold to sing`,
       RGB: "#00ff30",
     });
   }
