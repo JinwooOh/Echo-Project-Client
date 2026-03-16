@@ -140,6 +140,7 @@ export const playAudioData = async (options: PlayOptions): Promise<void> => {
       const duration = durationMs ? durationMs + 2000 : 300000;
       player.isPlaying = true;
       const proc = spawn("mpg123", [
+        "-q",
         "-",
         "--scale",
         "2",
@@ -148,6 +149,7 @@ export const playAudioData = async (options: PlayOptions): Promise<void> => {
         "-a",
         alsaOutputDevice,
       ]);
+      proc.stderr?.on("data", (d) => console.error("[mpg123]", d.toString()));
       try {
         proc.stdin?.write(buffer);
         proc.stdin?.end();

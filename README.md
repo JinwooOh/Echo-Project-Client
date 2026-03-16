@@ -101,38 +101,22 @@ If you get `RuntimeError: Failed to add edge detection`:
 
 ### 8. Run on boot (systemd)
 
-Create `/etc/systemd/system/echo-client.service`:
-
-```ini
-[Unit]
-Description=Echo Pi Client
-After=network.target sound.target
-Wants=sound.target
-
-[Service]
-Type=simple
-User=pi
-Group=audio
-SupplementaryGroups=audio video gpio
-WorkingDirectory=/home/pi/echo-client
-ExecStart=/home/pi/echo-client/run_echo.sh
-Environment=PATH=/home/pi/.nvm/versions/node/v20.x.x/bin:/usr/bin:/bin
-Environment=NODE_ENV=production
-PrivateDevices=no
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Then:
+Install the service so Echo starts automatically when the Pi boots:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable echo-client
+# Default: user=echo, path=/home/echo/Echo-Project-Client
+sudo ./install-service.sh
+
+# Or customize user and path (args work with sudo):
+sudo ./install-service.sh pi /home/pi/Echo-Project-Client
+```
+
+Then start it now (or reboot to test):
+
+```bash
 sudo systemctl start echo-client
 sudo systemctl status echo-client
+journalctl -u echo-client -f   # View logs
 ```
 
 ---

@@ -132,7 +132,7 @@ export class EchoFlow {
     display({
       status: "idle",
       emoji: "🎵",
-      text: `${genreList}\n\nHold to sing`,
+      text: `${genreList}\n\nHold to speak`,
       RGB: "#00ff30",
     });
   }
@@ -186,7 +186,7 @@ export class EchoFlow {
       display({
         status: "idle",
         emoji: "😕",
-        text: "No speech detected\n\nHold to sing",
+        text: "No speech detected\n\nHold to speak",
         RGB: "#ff6600",
       });
       this.enterIdle();
@@ -208,7 +208,7 @@ export class EchoFlow {
         transcript.trim(),
         this.currentGenre.style
       );
-      await this.enterGenerating(job_id);
+      await this.enterGenerating(job_id, transcript.trim());
     } catch (err) {
       console.error("Submit error:", err);
       display({
@@ -221,12 +221,12 @@ export class EchoFlow {
     }
   }
 
-  private async enterGenerating(jobId: string): Promise<void> {
+  private async enterGenerating(jobId: string, transcript: string): Promise<void> {
     this.state = "generating";
     display({
       status: "generating",
       emoji: "🎶",
-      text: "Generating music...",
+      text: transcript || "Generating...",
       RGB: "#aa00ff",
     });
     try {
@@ -234,7 +234,7 @@ export class EchoFlow {
         display({
           status: "generating",
           emoji: "🎶",
-          text: `Generating... (${status})`,
+          text: transcript ? `${transcript}\n(${status})` : `Generating... (${status})`,
           RGB: "#aa00ff",
         });
       });
@@ -270,13 +270,25 @@ export class EchoFlow {
       RGB: "#00ff88",
     });
     try {
+      console.log("[Flow] Fetching audio from:", audioUrl);
       const buffer = await fetchAudio(audioUrl);
+      if (!buffer || buffer.length < 1000) {
+        throw new Error(`Audio too small (${buffer?.length ?? 0} bytes)`);
+      }
+      console.log("[Flow] Playing", buffer.length, "bytes");
       const durationMs = durationSeconds
         ? Math.ceil(durationSeconds * 1000)
         : undefined;
       await playAudioData({ buffer, durationMs });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("Play error:", err);
+      display({
+        status: "idle",
+        emoji: "❌",
+        text: `Play failed: ${msg}\n\nHold to try again`,
+        RGB: "#ff0000",
+      });
     }
     this.enterIdle();
   }

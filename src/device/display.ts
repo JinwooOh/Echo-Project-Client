@@ -28,7 +28,7 @@ export class EchoDisplay {
   private currentStatus: Status = {
     status: "starting",
     emoji: "🎵",
-    text: "Hold to sing",
+    text: "Hold to speak",
     scroll_speed: 3,
     brightness: 100,
     RGB: "#00FF30",

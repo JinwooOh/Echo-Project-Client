@@ -212,8 +212,12 @@ class WhisplayBoard:
 
     # ==================== Raspberry Pi Initialization ====================
     def _init_rpi(self):
-        GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
+        try:
+            GPIO.cleanup()
+        except Exception:
+            pass
+        GPIO.setmode(GPIO.BOARD)
 
         # Initialize LCD pins
         GPIO.setup([self.DC_PIN, self.RST_PIN, self.LED_PIN], GPIO.OUT)

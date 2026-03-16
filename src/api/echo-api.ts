@@ -57,13 +57,30 @@ export async function getJobStatus(
   return data;
 }
 
+const RETRYABLE_CODES = ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "socket hang up", "EPIPE"];
+
+function isRetryable(err: unknown): boolean {
+  const e = err as { message?: string; code?: string; cause?: { code?: string } };
+  const msg = [e?.message, e?.code, e?.cause?.code].filter(Boolean).join(" ");
+  return RETRYABLE_CODES.some((c) => msg.includes(c));
+}
+
 export async function waitForJobComplete(
   jobId: string,
   onStatus?: (status: string) => void
 ): Promise<JobStatusResponse> {
   let lastStatus: JobStatusResponse;
   while (true) {
-    lastStatus = await getJobStatus(jobId, 60);
+    try {
+      lastStatus = await getJobStatus(jobId, 60);
+    } catch (err) {
+      if (isRetryable(err)) {
+        console.warn("[API] Long-poll connection lost, retrying...", err instanceof Error ? err.message : err);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      throw err;
+    }
     onStatus?.(lastStatus.status);
     if (lastStatus.status === "done" || lastStatus.status === "error") {
       return lastStatus;

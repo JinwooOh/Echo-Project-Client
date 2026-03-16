@@ -1,0 +1,21 @@
+[Unit]
+Description=Echo Pi Client - Music agent with Whisplay
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=echo
+Group=echo
+SupplementaryGroups=audio video gpio
+WorkingDirectory=/home/echo/Echo-Project-Client
+ExecStart=/home/echo/Echo-Project-Client/run_echo.sh
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+# Load NVM if node is installed via nvm
+Environment=NVM_DIR=/home/echo/.nvm
+
+[Install]
+WantedBy=multi-user.target

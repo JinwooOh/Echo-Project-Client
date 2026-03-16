@@ -53,7 +53,7 @@ def _display_emoji(emoji: str) -> str:
 
 current_status = "Echo"
 current_emoji = "🎵"
-current_text = "Hold to sing"
+current_text = "Hold to speak"
 current_battery_level = 100
 current_battery_color = ColorUtils.get_rgb255_from_any("#55FF00")
 current_scroll_top = 0
@@ -477,15 +477,26 @@ def start_socket_server(render_thread, host="0.0.0.0", port=12345):
 if __name__ == "__main__":
     whisplay = WhisplayBoard()
     print(f"[LCD] Initialization finished: {whisplay.LCD_WIDTH}x{whisplay.LCD_HEIGHT}")
+    # Font fallback: prefer Korean-capable (CJK) fonts, then Latin-only
     custom_font_path = os.getenv("CUSTOM_FONT_PATH")
-    font_path = custom_font_path or os.path.join(os.path.dirname(__file__), "NotoSansSC-Bold.ttf")
-    if not os.path.exists(font_path):
-        font_path = "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"
-    if not os.path.exists(font_path):
+    font_path = custom_font_path
+    if not font_path or not os.path.exists(font_path):
+        # NotoSansCJK = Chinese + Japanese + Korean (try common install paths)
+        for p in [
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+            os.path.join(os.path.dirname(__file__), "NotoSansCJK-Bold.ttc"),
+            os.path.join(os.path.dirname(__file__), "NotoSansSC-Bold.ttf"),
+        ]:
+            if os.path.exists(p):
+                font_path = p
+                break
+    if not font_path or not os.path.exists(font_path):
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    if not os.path.exists(font_path):
+    if not font_path or not os.path.exists(font_path):
         print("[Echo] Warning: No font found, using default")
         font_path = "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"
+    print(f"[Echo] Using font: {font_path}")
     render_thread = RenderThread(whisplay, font_path, fps=30)
     render_thread.start()
     start_socket_server(render_thread, host="0.0.0.0", port=12345)
